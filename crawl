@@ -1,0 +1,24 @@
+#!/usr/bin/env coffee
+SimpleCrawler = require "simplecrawler"
+fs = require 'fs'
+
+crawler = SimpleCrawler.crawl "http://www.ah.nl/allerhande/recipe-sitemap.xml"
+
+crawler.userAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36"
+crawler.maxConcurrency = 10
+crawler.interval = 10
+
+isRecipeUrl = (url) -> url.indexOf "recepten/" > 0
+getRecipeNameFromUrl = (url) -> url.substring(url.lastIndexOf('/') + 1)
+logWriteResult = (file) -> (err) -> console.log("Write Failed %s", file) if err?
+saveRecipe = (url, data) ->
+  name = getRecipeNameFromUrl url
+  console.log("Fetched: %s", name)
+  fs.writeFile("fetched/"+name, data, logWriteResult(name))
+
+onFetchComplete = (queueItem, data, res) ->
+  url = queueItem.url
+  saveRecipe(url, data) if isRecipeUrl(url)?
+
+crawler.on("fetchcomplete", onFetchComplete)
+crawler.start()
