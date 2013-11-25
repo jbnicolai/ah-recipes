@@ -1,0 +1,38 @@
+#!/usr/bin/env coffee
+fs = require 'fs'
+ent = require 'ent'
+decode = ent.decode
+
+data = JSON.parse(fs.readFileSync('parsed.json'))
+
+graph = { nodes: [], links: [] }
+
+# edges reference nodes by index, so in addition to adding
+# nodes to the graph, add them to a hashmap mapping to their index
+node_indices = {}
+node_index = 0
+add_node = (n, t) ->
+  if !(n of node_indices)
+    node_indices[n] = node_index++
+    graph.nodes.push({
+      name: n
+      group: t })
+add_edge = (a, b) ->
+  graph.links.push({
+    source: node_indices[a]
+    target: node_indices[b]
+    value: 1 })
+
+early_exit_index = 0
+for r in data
+  if early_exit_index++ > 2500
+    break
+  add_node(r.title, 1)
+  for i in r.ingredients
+    add_node(i.searchterm, 2)
+    add_edge(r.title, i.searchterm)
+
+path = 'visualisation/graph.json'
+if fs.existsSync(path)
+  fs.unlinkSync(path)
+fs.writeFile(path, JSON.stringify graph)
