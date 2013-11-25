@@ -1,0 +1,18 @@
+{
+  "name": "recipe-crawler",
+  "version": "0.0.0",
+  "description": "webcrawler for recipes",
+  "main": "crawl",
+  "dependencies": {
+    "coffee": "~0.0.1",
+    "htmlparser2": "~3.3.0",
+    "simplecrawler": "~0.3.5",
+    "soupselect": "~0.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "jbnicolai",
+  "license": "BSD-2-Clause"
+}
