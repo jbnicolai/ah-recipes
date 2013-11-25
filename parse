@@ -1,0 +1,62 @@
+#!/usr/bin/env coffee
+fs = require 'fs'
+htmlparser = require 'htmlparser2'
+soupselect = require 'soupselect'
+
+#helpers
+select = soupselect.select
+find = (dom, selector) -> select(dom, selector)[0]
+trimControlChars = (str) -> str.replace(/[\t\n\r]/g,'')
+trimWhiteSpace = (str) -> str.trim()
+trimTrailingComma = (str) -> str.replace(/,$/,'')
+cleanStr = (str) -> trimWhiteSpace(trimTrailingComma(trimControlChars(str)))
+getText = (dom) -> cleanStr dom.data
+getChild = (dom) -> getText dom.children[0]
+
+#attribute parsers
+parseTitle = (dom) -> find(dom, "div.recipe-info h1.fn").attribs['data-title']
+parseIngredient = (dom) -> {
+  searchterm: cleanStr dom.attribs['data-search-term']
+  name: getChild dom }
+parseIngredients = (dom) ->
+  (parseIngredient ingredient for ingredient in select(dom, 'span.ingredient'))
+parseCourse = (dom) ->
+  getText find(dom, "li.course a").children[1]
+parseServings = (dom) ->
+  getChild find(dom, "li.servings a span.yield")
+parseTime = (dom) ->
+  time = find(dom, "li.time span.cookTime").children[0]
+  { text: getChild time,
+    numeric: time.attribs.title }
+parseNutrition = (dom) ->
+  nutrition = find(dom, "dl.nutrition")
+  { energy: getChild find(nutrition, "span.calories"),
+    protein: getChild find(nutrition, "span.protein")
+    fat: getChild find(nutrition, "span.fat")
+    carbohydrates: getChild find(nutrition, "span.carbohydrates") }
+parseInstructions = (dom) ->
+  (getChild instruction for instruction in select(dom, "div.instructions div.preparation ol li"))
+
+results = []
+files = fs.readdirSync 'fetched/'
+i = 0
+for file in files
+  try
+    handler = new htmlparser.DomHandler((err, dom) ->
+      results.push({
+        title: parseTitle dom
+        course: parseCourse dom
+        time: parseTime dom
+        servings: parseServings dom
+        ingredients: parseIngredients dom
+        nutrition: parseNutrition dom
+        instructions: parseInstructions dom
+      }))
+    parser = new htmlparser.Parser(handler)
+    parser.write(fs.readFileSync('fetched/'+file))
+    parser.done()
+  catch e
+    console.log("error at " + file)
+    console.log(e)
+  console.log(i+++"/"+files.length)
+fs.writeFile('parsed.json', JSON.stringify results)
